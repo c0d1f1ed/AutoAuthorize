@@ -54,8 +54,8 @@ export class MessageInterceptor {
             subtype: "success",
             request_id: msg.request_id,
             response: {
-              toolUseID: tool_use_id,
-              approved: true,
+              behavior: "allow",
+              updatedInput: input,
             },
           },
         });

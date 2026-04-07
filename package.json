@@ -19,15 +19,15 @@
     "commands": [
       {
         "command": "autoAuthorize.openPanel",
-        "title": "AutoAuthorize: Open Panel"
+        "title": "Auto-Authorize: Open Panel"
       },
       {
         "command": "autoAuthorize.enable",
-        "title": "AutoAuthorize: Enable"
+        "title": "Auto-Authorize: Enable"
       },
       {
         "command": "autoAuthorize.disable",
-        "title": "AutoAuthorize: Disable"
+        "title": "Auto-Authorize: Disable"
       }
     ],
     "viewsContainers": {
@@ -44,7 +44,7 @@
         {
           "type": "webview",
           "id": "autoAuthorize.panel",
-          "name": "AutoAuthorize"
+          "name": "Auto-Authorize"
         }
       ]
     },

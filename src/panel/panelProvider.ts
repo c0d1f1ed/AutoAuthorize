@@ -14,7 +14,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
     private ruleEngine: RuleEngine,
     private activityLog: ActivityLog,
     private interceptor: MessageInterceptor,
-    private spawnWrapper: SpawnWrapper,
+    private spawnWrapper: SpawnWrapper | null,
     private saveRules: () => void
   ) {}
 
@@ -54,7 +54,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
       stats: this.activityLog.getStats(),
       log: this.activityLog.getEntries().slice(-50),
       enabled: this.interceptor.isEnabled(),
-      wrappedProcesses: this.spawnWrapper.getWrappedCount(),
+      wrappedProcesses: this.spawnWrapper?.getWrappedCount() ?? 0,
       debugLog: this.debugLines,
     });
   }

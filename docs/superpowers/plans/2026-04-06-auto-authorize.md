@@ -1514,11 +1514,11 @@ export class PanelProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AutoAuthorize</title>
+  <title>Auto-Authorize</title>
   <style>/* Placeholder — replaced in Task 7 */</style>
 </head>
 <body>
-  <p>AutoAuthorize panel loading... (full UI in Task 7)</p>
+  <p>Auto-Authorize panel loading... (full UI in Task 7)</p>
   <script>/* Placeholder — replaced in Task 7 */</script>
 </body>
 </html>`;
