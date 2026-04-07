@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}';">
+  <title>AutoAuthorize</title>
+  <link rel="stylesheet" href="{{styleUri}}">
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h2>AutoAuthorize</h2>
+    </div>
+    <div class="header-right">
+      <label class="switch">
+        <input type="checkbox" id="masterToggle" checked>
+        <span class="slider"></span>
+      </label>
+      <span id="masterLabel">Enabled</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="rules">Rules</button>
+    <button class="tab" data-tab="log">Activity Log</button>
+    <button class="tab" data-tab="status">Status</button>
+  </div>
+
+  <!-- Rules Tab -->
+  <div class="tab-content active" id="tab-rules">
+    <div class="toolbar">
+      <button id="addRuleBtn" class="btn btn-primary">+ Add Rule</button>
+      <button id="exportBtn" class="btn">Export</button>
+      <button id="importBtn" class="btn">Import</button>
+    </div>
+
+    <div id="addRuleForm" class="form hidden">
+      <div class="form-group">
+        <label>Tool Type</label>
+        <select id="ruleToolType">
+          <option value="Bash">Bash</option>
+          <option value="Read">Read</option>
+          <option value="Write">Write</option>
+          <option value="Edit">Edit</option>
+          <option value="*">Any</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Regex Pattern</label>
+        <input type="text" id="rulePattern" placeholder="^grep\b.*">
+        <span id="patternError" class="error hidden"></span>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="ruleDescription" placeholder="Allow grep commands">
+      </div>
+      <div class="form-group test-group">
+        <label>Test Input</label>
+        <input type="text" id="testInput" placeholder="grep -r pattern .">
+        <span id="testResult" class="test-result"></span>
+      </div>
+      <div class="form-actions">
+        <button id="saveRuleBtn" class="btn btn-primary">Save</button>
+        <button id="cancelRuleBtn" class="btn">Cancel</button>
+      </div>
+    </div>
+
+    <table id="rulesTable">
+      <thead>
+        <tr>
+          <th>On</th>
+          <th>Tool</th>
+          <th>Pattern</th>
+          <th>Description</th>
+          <th>Matches</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="rulesBody"></tbody>
+    </table>
+    <p id="noRules" class="empty-state">No rules defined. Click "+ Add Rule" to get started.</p>
+  </div>
+
+  <!-- Activity Log Tab -->
+  <div class="tab-content" id="tab-log">
+    <div class="toolbar">
+      <button class="btn filter-btn active" data-filter="all">All</button>
+      <button class="btn filter-btn" data-filter="auto-approved">Auto-approved</button>
+      <button class="btn filter-btn" data-filter="passed-through">Passed-through</button>
+      <button id="clearLogBtn" class="btn">Clear</button>
+    </div>
+    <table id="logTable">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Tool</th>
+          <th>Command / Path</th>
+          <th>Outcome</th>
+          <th>Rule</th>
+        </tr>
+      </thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    <p id="noLog" class="empty-state">No activity yet.</p>
+  </div>
+
+  <!-- Status Tab -->
+  <div class="tab-content" id="tab-status">
+    <div class="status-grid">
+      <div class="status-card">
+        <div class="status-label">Status</div>
+        <div class="status-value" id="statusEnabled">Enabled</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Active Processes</div>
+        <div class="status-value" id="statusProcesses">0</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Total Intercepted</div>
+        <div class="status-value" id="statusTotal">0</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Auto-approved</div>
+        <div class="status-value" id="statusApproved">0</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">Passed Through</div>
+        <div class="status-value" id="statusPassedThrough">0</div>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="importFile" accept=".json" class="hidden">
+
+  <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>

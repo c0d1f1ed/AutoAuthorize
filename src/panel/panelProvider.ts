@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { RuleEngine } from "../ruleEngine";
 import { ActivityLog } from "../activityLog";
 import { MessageInterceptor } from "../messageInterceptor";
@@ -117,16 +118,34 @@ export class PanelProvider implements vscode.WebviewViewProvider {
   }
 
   private getHtml(): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AutoAuthorize</title>
-</head>
-<body>
-  <p>AutoAuthorize panel — full UI loading in next task.</p>
-</body>
-</html>`;
+    const webview = this.view!.webview;
+    const nonce = getNonce();
+
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, "src", "panel", "webview", "style.css")
+    );
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, "src", "panel", "webview", "main.js")
+    );
+
+    const fs = require("fs");
+    const htmlPath = path.join(this.extensionUri.fsPath, "src", "panel", "webview", "index.html");
+    let html = fs.readFileSync(htmlPath, "utf-8");
+
+    html = html.replace(/\{\{cspSource\}\}/g, webview.cspSource);
+    html = html.replace(/\{\{nonce\}\}/g, nonce);
+    html = html.replace(/\{\{styleUri\}\}/g, styleUri.toString());
+    html = html.replace(/\{\{scriptUri\}\}/g, scriptUri.toString());
+
+    return html;
   }
+}
+
+function getNonce(): string {
+  let text = "";
+  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
 }
