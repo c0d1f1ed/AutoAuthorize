@@ -1,6 +1,8 @@
-src/
+src/**/*.ts
 test/
 node_modules/
 tsconfig.json
 .gitignore
+vitest.config.ts
 *.map
+docs/
