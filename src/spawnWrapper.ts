@@ -195,7 +195,7 @@ export class SpawnWrapper {
               }
             }
 
-            const handled = interceptor.handleMessage(msg, sendResponse);
+            const handled = interceptor.handleMessage(msg, sendResponse, pid);
             if (handled) return;
             // Forward non-intercepted messages directly to downstream listeners
             const line = JSON.stringify(msg) + "\n";

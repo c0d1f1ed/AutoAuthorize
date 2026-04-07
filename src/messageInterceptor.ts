@@ -38,7 +38,7 @@ export class MessageInterceptor {
     return this.enabled;
   }
 
-  handleMessage(msg: unknown, sendResponse: (response: unknown) => void): boolean {
+  handleMessage(msg: unknown, sendResponse: (response: unknown) => void, pid?: number): boolean {
     if (!isCanUseToolRequest(msg)) return false;
 
     const { tool_name, input, tool_use_id } = msg.request;
@@ -60,7 +60,7 @@ export class MessageInterceptor {
           },
         });
 
-        this.activityLog.add({
+        this.activityLog.add(pid, {
           toolName: tool_name,
           input: matchTarget,
           outcome: "auto-approved",
@@ -72,7 +72,7 @@ export class MessageInterceptor {
       }
     }
 
-    this.activityLog.add({
+    this.activityLog.add(pid, {
       toolName: tool_name,
       input: matchTarget,
       outcome: "passed-through",

@@ -21,6 +21,11 @@ export function activate(context: vscode.ExtensionContext) {
   const ruleEngine = new RuleEngine();
   const activityLog = new ActivityLog(500);
 
+  // Set up persistent log directory
+  const logDir = vscode.Uri.joinPath(context.globalStorageUri, "logs").fsPath;
+  activityLog.setLogDir(logDir);
+  log(`Log directory: ${logDir}`);
+
   // Load saved rules
   const savedRules = context.globalState.get<string>("autoAuthorize.rules");
   if (savedRules) {
@@ -44,8 +49,14 @@ export function activate(context: vscode.ExtensionContext) {
     const logger = { appendLine: (msg: string) => log(msg) };
     spawnWrapper = new SpawnWrapper(interceptor, logger, debug);
     spawnWrapper.setCallbacks(
-      (pid) => log(`Wrapped Claude CLI process (PID: ${pid})`),
-      (pid) => log(`Claude CLI process exited (PID: ${pid})`)
+      (pid) => {
+        if (pid !== undefined) activityLog.startSession(pid);
+        log(`Wrapped Claude CLI process (PID: ${pid})`);
+      },
+      (pid) => {
+        if (pid !== undefined) activityLog.endSession(pid);
+        log(`Claude CLI process exited (PID: ${pid})`);
+      }
     );
     spawnWrapper.install();
     log("Spawn wrapper installed");

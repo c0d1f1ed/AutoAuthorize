@@ -55,6 +55,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
       log: this.activityLog.getEntries().slice(-50),
       enabled: this.interceptor.isEnabled(),
       wrappedProcesses: this.spawnWrapper?.getWrappedCount() ?? 0,
+      logDir: this.activityLog.getLogDir(),
       debugLog: this.debugLines,
     });
   }
@@ -121,6 +122,13 @@ export class PanelProvider implements vscode.WebviewViewProvider {
           this.view?.webview.postMessage({ type: "error", message: e.message });
         }
         break;
+      case "openLogDir": {
+        const dir = this.activityLog.getLogDir();
+        if (dir) {
+          vscode.env.openExternal(vscode.Uri.file(dir));
+        }
+        break;
+      }
       case "getState":
         this.sendState();
         break;
@@ -299,6 +307,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
       <button class="btn filter-btn" data-filter="auto-approved">Auto-approved</button>
       <button class="btn filter-btn" data-filter="passed-through">Passed-through</button>
       <button id="clearLogBtn" class="btn">Clear</button>
+      <button id="openLogDirBtn" class="btn">Open Log Folder</button>
     </div>
     <table id="logTable">
       <thead><tr><th>Time</th><th>Tool</th><th>Command / Path</th><th>Outcome</th><th>Rule</th></tr></thead>
@@ -434,6 +443,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
   });
 
   clearLogBtn.addEventListener("click", function() { vscode.postMessage({ type: "clearLog" }); });
+  document.getElementById("openLogDirBtn").addEventListener("click", function() { vscode.postMessage({ type: "openLogDir" }); });
   exportBtn.addEventListener("click", function() { vscode.postMessage({ type: "exportRules" }); });
   importBtn.addEventListener("click", function() { importFile.click(); });
   importFile.addEventListener("change", function(e) {
