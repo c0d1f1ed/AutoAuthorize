@@ -46,6 +46,16 @@
           "name": "AutoAuthorize"
         }
       ]
+    },
+    "configuration": {
+      "title": "AutoAuthorize",
+      "properties": {
+        "autoAuthorize.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable verbose logging of intercepted messages"
+        }
+      }
     }
   },
   "scripts": {
