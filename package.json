@@ -1,6 +1,6 @@
 {
   "name": "auto-authorize",
-  "displayName": "AutoAuthorize for Claude Code",
+  "displayName": "Auto-Authorize for Claude Code",
   "description": "Automatically approve Claude Code tool requests matching regex patterns",
   "version": "0.1.0",
   "publisher": "local",
