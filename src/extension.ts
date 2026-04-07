@@ -9,7 +9,14 @@ let spawnWrapper: SpawnWrapper | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
   const outputChannel = vscode.window.createOutputChannel("AutoAuthorize");
-  outputChannel.appendLine("AutoAuthorize activating...");
+  let panelProvider: PanelProvider | undefined;
+
+  const log = (msg: string) => {
+    outputChannel.appendLine(msg);
+    panelProvider?.appendDebug(msg);
+  };
+
+  log("AutoAuthorize activating...");
 
   const ruleEngine = new RuleEngine();
   const activityLog = new ActivityLog(500);
@@ -19,9 +26,9 @@ export function activate(context: vscode.ExtensionContext) {
   if (savedRules) {
     try {
       ruleEngine.importRules(savedRules);
-      outputChannel.appendLine(`Loaded ${ruleEngine.getRules().length} saved rules`);
+      log(`Loaded ${ruleEngine.getRules().length} saved rules`);
     } catch (e) {
-      outputChannel.appendLine(`Failed to load saved rules: ${e}`);
+      log(`Failed to load saved rules: ${e}`);
     }
   }
 
@@ -35,14 +42,14 @@ export function activate(context: vscode.ExtensionContext) {
   const debug = vscode.workspace.getConfiguration("autoAuthorize").get<boolean>("debug", false);
   spawnWrapper = new SpawnWrapper(interceptor, outputChannel, debug);
   spawnWrapper.setCallbacks(
-    (pid) => outputChannel.appendLine(`Wrapped Claude CLI process (PID: ${pid})`),
-    (pid) => outputChannel.appendLine(`Claude CLI process exited (PID: ${pid})`)
+    (pid) => log(`Wrapped Claude CLI process (PID: ${pid})`),
+    (pid) => log(`Claude CLI process exited (PID: ${pid})`)
   );
   spawnWrapper.install();
-  outputChannel.appendLine("Spawn wrapper installed");
+  log("Spawn wrapper installed");
 
   // Register panel provider
-  const panelProvider = new PanelProvider(
+  panelProvider = new PanelProvider(
     context.extensionUri,
     ruleEngine,
     activityLog,
@@ -78,10 +85,10 @@ export function activate(context: vscode.ExtensionContext) {
   // Log activity
   activityLog.onEntry((entry) => {
     const symbol = entry.outcome === "auto-approved" ? "OK" : "->";
-    outputChannel.appendLine(`${symbol} [${entry.toolName}] ${entry.input} (${entry.outcome})`);
+    log(`${symbol} [${entry.toolName}] ${entry.input} (${entry.outcome})`);
   });
 
-  outputChannel.appendLine("AutoAuthorize ready");
+  log("AutoAuthorize ready");
 }
 
 export function deactivate() {
