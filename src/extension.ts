@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import * as path from "path";
+import { exec } from "child_process";
 import { RuleEngine } from "./ruleEngine";
 import { ActivityLog } from "./activityLog";
 import { MessageInterceptor } from "./messageInterceptor";
@@ -71,7 +73,11 @@ export function activate(context: vscode.ExtensionContext) {
     activityLog,
     interceptor,
     spawnWrapper,
-    saveRules
+    saveRules,
+    {
+      isSoundEnabled: () => soundEnabled,
+      setSoundEnabled: (v: boolean) => { soundEnabled = v; },
+    }
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("autoAuthorize.panel", panelProvider)
@@ -98,10 +104,25 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Log activity
+  // Log activity + sound notification
+  let soundEnabled = false;
   activityLog.onEntry((entry) => {
     const symbol = entry.outcome === "auto-approved" ? "OK" : "->";
     log(`${symbol} [${entry.toolName}] ${entry.input} (${entry.outcome})`);
+    if (entry.outcome === "passed-through" && soundEnabled) {
+      const wav = path.join(context.extensionPath, "resources", "notify.wav");
+      switch (process.platform) {
+        case "win32":
+          exec(`powershell -c "(New-Object System.Media.SoundPlayer '${wav}').PlaySync()"`, { windowsHide: true });
+          break;
+        case "darwin":
+          exec(`afplay "${wav}"`);
+          break;
+        default:
+          exec(`paplay "${wav}" || aplay "${wav}"`);
+          break;
+      }
+    }
   });
 
   log("Auto-Authorize ready");

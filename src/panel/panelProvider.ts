@@ -15,7 +15,8 @@ export class PanelProvider implements vscode.WebviewViewProvider {
     private activityLog: ActivityLog,
     private interceptor: MessageInterceptor,
     private spawnWrapper: SpawnWrapper | null,
-    private saveRules: () => void
+    private saveRules: () => void,
+    private soundConfig: { isSoundEnabled: () => boolean; setSoundEnabled: (v: boolean) => void }
   ) {}
 
   appendDebug(line: string): void {
@@ -56,6 +57,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
       enabled: this.interceptor.isEnabled(),
       wrappedProcesses: this.spawnWrapper?.getWrappedCount() ?? 0,
       logDir: this.activityLog.getLogDir(),
+      soundEnabled: this.soundConfig.isSoundEnabled(),
       debugLog: this.debugLines,
     });
   }
@@ -121,6 +123,10 @@ export class PanelProvider implements vscode.WebviewViewProvider {
         } catch (e: any) {
           this.view?.webview.postMessage({ type: "error", message: e.message });
         }
+        break;
+      case "setSound":
+        this.soundConfig.setSoundEnabled(msg.enabled);
+        this.sendState();
         break;
       case "openLogDir": {
         const dir = this.activityLog.getLogDir();
@@ -251,6 +257,12 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         <span class="slider"></span>
       </label>
       <span id="masterLabel">Enabled</span>
+      <span style="margin-left:8px;opacity:0.4">|</span>
+      <label class="switch">
+        <input type="checkbox" id="soundToggle">
+        <span class="slider"></span>
+      </label>
+      <span id="soundLabel">Sound</span>
     </div>
   </div>
   <div class="tabs">
@@ -371,8 +383,15 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     });
   });
 
+  var soundToggle = document.getElementById("soundToggle");
+  var soundLabel = document.getElementById("soundLabel");
+
   masterToggle.addEventListener("change", function() {
     vscode.postMessage({ type: "setEnabled", enabled: masterToggle.checked });
+  });
+
+  soundToggle.addEventListener("change", function() {
+    vscode.postMessage({ type: "setSound", enabled: soundToggle.checked });
   });
 
   addRuleBtn.addEventListener("click", function() {
@@ -520,6 +539,8 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     document.getElementById("statusPassedThrough").textContent = String(s.stats.passedThrough);
     masterToggle.checked = s.enabled;
     masterLabel.textContent = s.enabled ? "Enabled" : "Disabled";
+    soundToggle.checked = s.soundEnabled;
+    soundLabel.textContent = s.soundEnabled ? "Sound" : "Muted";
   }
 
   function render() { renderRules(); renderLog(); renderStatus(); renderDebug(); }
