@@ -34,7 +34,7 @@
       "activitybar": [
         {
           "id": "autoAuthorize",
-          "title": "AutoAuthorize",
+          "title": "Auto-Authorize",
           "icon": "resources/icon.svg"
         }
       ]
@@ -49,7 +49,7 @@
       ]
     },
     "configuration": {
-      "title": "AutoAuthorize",
+      "title": "Auto-Authorize",
       "properties": {
         "autoAuthorize.debug": {
           "type": "boolean",
