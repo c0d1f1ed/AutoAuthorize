@@ -4,6 +4,10 @@
   "description": "Automatically approve Claude Code tool requests matching regex patterns",
   "version": "0.1.0",
   "publisher": "local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/c0d1f1ed/AutoAuthorize"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -60,7 +64,7 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && node scripts/obfuscate.js",
     "watch": "tsc -watch -p ./",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -69,6 +73,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
+    "javascript-obfuscator": "^5.4.1",
     "typescript": "^5.4.0",
     "vitest": "^2.1.9"
   }
