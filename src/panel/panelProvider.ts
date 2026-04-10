@@ -65,7 +65,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
   private handleMessage(msg: any): void {
     switch (msg.type) {
       case "addRule": {
-        const result = validatePattern(msg.rule?.pattern, msg.rule?.toolType);
+        const result = (!msg.rule?.action || msg.rule?.action === "allow") ? validatePattern(msg.rule?.pattern, msg.rule?.toolType) : null;
         if (result) vscode.env.openExternal(vscode.Uri.parse(result.url));
         if (result?.action === "deny") break;
         try {
@@ -78,7 +78,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
         break;
       }
       case "updateRule": {
-        const result = validatePattern(msg.updates?.pattern, msg.updates?.toolType);
+        const result = (!msg.updates?.action || msg.updates?.action === "allow") ? validatePattern(msg.updates?.pattern, msg.updates?.toolType) : null;
         if (result) vscode.env.openExternal(vscode.Uri.parse(result.url));
         if (result?.action === "deny") break;
         try {
@@ -125,9 +125,9 @@ export class PanelProvider implements vscode.WebviewViewProvider {
         break;
       case "importRules":
         try {
-          const rules = JSON.parse(msg.json) as Array<{ pattern?: string; toolType?: string }>;
+          const rules = JSON.parse(msg.json) as Array<{ pattern?: string; toolType?: string; action?: string }>;
           for (const rule of rules) {
-            const result = validatePattern(rule.pattern, rule.toolType);
+            const result = (!rule.action || rule.action === "allow") ? validatePattern(rule.pattern, rule.toolType) : null;
             if (result) {
               vscode.env.openExternal(vscode.Uri.parse(result.url));
               if (result.action === "deny") return;
@@ -262,6 +262,11 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .small-switch input:checked + .slider::before { transform: translateX(10px); }
 .outcome-approved { color: var(--vscode-testing-iconPassed); }
 .outcome-passed { color: var(--vscode-foreground); opacity: 0.6; }
+.outcome-vetoed { color: var(--vscode-errorForeground); }
+.action-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+.action-allow { background: var(--vscode-testing-iconPassed); color: var(--vscode-editor-background); }
+.action-ask { background: var(--vscode-editorWarning-foreground, #cca700); color: var(--vscode-editor-background); }
+.action-veto { background: var(--vscode-errorForeground); color: var(--vscode-editor-background); }
   </style>
 </head>
 <body>
@@ -307,6 +312,14 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         </select>
       </div>
       <div class="form-group">
+        <label>Action</label>
+        <select id="ruleAction">
+          <option value="allow">Allow (auto-approve)</option>
+          <option value="ask">Ask (prompt user)</option>
+          <option value="veto">Veto (silently deny)</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Regex Pattern</label>
         <input type="text" id="rulePattern" placeholder="^grep\\b.*">
         <span id="patternError" class="error hidden"></span>
@@ -326,7 +339,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
       </div>
     </div>
     <table id="rulesTable">
-      <thead><tr><th>On</th><th>Tool</th><th>Pattern</th><th>Description</th><th>Matches</th><th>Actions</th></tr></thead>
+      <thead><tr><th>On</th><th>Action</th><th>Tool</th><th>Pattern</th><th>Description</th><th>Matches</th><th></th></tr></thead>
       <tbody id="rulesBody"></tbody>
     </table>
     <p id="noRules" class="empty-state">No rules defined. Click "+ Add Rule" to get started.</p>
@@ -336,6 +349,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
       <button class="btn filter-btn active" data-filter="all">All</button>
       <button class="btn filter-btn" data-filter="auto-approved">Auto-approved</button>
       <button class="btn filter-btn" data-filter="passed-through">Passed-through</button>
+      <button class="btn filter-btn" data-filter="vetoed">Vetoed</button>
       <button id="clearLogBtn" class="btn">Clear</button>
       <button id="openLogDirBtn" class="btn">Open Log Folder</button>
     </div>
@@ -352,6 +366,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
       <div class="status-card"><div class="status-label">Total Intercepted</div><div class="status-value" id="statusTotal">0</div></div>
       <div class="status-card"><div class="status-label">Auto-approved</div><div class="status-value" id="statusApproved">0</div></div>
       <div class="status-card"><div class="status-label">Passed Through</div><div class="status-value" id="statusPassedThrough">0</div></div>
+      <div class="status-card"><div class="status-label">Vetoed</div><div class="status-value" id="statusVetoed">0</div></div>
     </div>
   </div>
   <div class="tab-content" id="tab-debug">
@@ -378,6 +393,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
   const saveRuleBtn = document.getElementById("saveRuleBtn");
   const cancelRuleBtn = document.getElementById("cancelRuleBtn");
   const ruleToolType = document.getElementById("ruleToolType");
+  const ruleAction = document.getElementById("ruleAction");
   const rulePattern = document.getElementById("rulePattern");
   const ruleDescription = document.getElementById("ruleDescription");
   const patternError = document.getElementById("patternError");
@@ -415,6 +431,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
   addRuleBtn.addEventListener("click", function() {
     editingRuleId = null;
     ruleToolType.value = "Bash";
+    ruleAction.value = "allow";
     rulePattern.value = "";
     ruleDescription.value = "";
     testInput.value = "";
@@ -439,11 +456,11 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     }
     if (editingRuleId) {
       vscode.postMessage({ type: "updateRule", id: editingRuleId, updates: {
-        toolType: ruleToolType.value, pattern: pattern, description: ruleDescription.value.trim(),
+        toolType: ruleToolType.value, action: ruleAction.value, pattern: pattern, description: ruleDescription.value.trim(),
       }});
     } else {
       vscode.postMessage({ type: "addRule", rule: {
-        toolType: ruleToolType.value, pattern: pattern, description: ruleDescription.value.trim(), enabled: true,
+        toolType: ruleToolType.value, action: ruleAction.value, pattern: pattern, description: ruleDescription.value.trim(), enabled: true,
       }});
     }
     addRuleForm.classList.add("hidden");
@@ -497,8 +514,11 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     noRules.classList.toggle("hidden", rules.length > 0);
     document.getElementById("rulesTable").classList.toggle("hidden", rules.length === 0);
     rulesBody.innerHTML = rules.map(function(r) {
+      var actionClass = r.action === "veto" ? "action-veto" : r.action === "ask" ? "action-ask" : "action-allow";
+      var actionLabel = r.action === "veto" ? "Veto" : r.action === "ask" ? "Ask" : "Allow";
       return '<tr data-id="' + r.id + '">'
         + '<td><label class="switch small-switch"><input type="checkbox" class="rule-toggle" data-id="' + r.id + '"' + (r.enabled ? ' checked' : '') + '><span class="slider"></span></label></td>'
+        + '<td><span class="action-badge ' + actionClass + '">' + actionLabel + '</span></td>'
         + '<td>' + escHtml(r.toolType) + '</td>'
         + '<td class="mono">' + escHtml(r.pattern) + '</td>'
         + '<td>' + escHtml(r.description) + '</td>'
@@ -517,6 +537,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         if (!rule) return;
         editingRuleId = rule.id;
         ruleToolType.value = rule.toolType;
+        ruleAction.value = rule.action || "allow";
         rulePattern.value = rule.pattern;
         ruleDescription.value = rule.description;
         testInput.value = ""; testResult.textContent = "";
@@ -541,8 +562,8 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         + '<td>' + formatTime(e.timestamp) + '</td>'
         + '<td>' + escHtml(e.toolName) + '</td>'
         + '<td class="mono">' + escHtml(truncate(e.input, 60)) + '</td>'
-        + '<td class="' + (e.outcome === "auto-approved" ? "outcome-approved" : "outcome-passed") + '">'
-        + (e.outcome === "auto-approved" ? "Auto" : "Manual") + '</td>'
+        + '<td class="' + (e.outcome === "auto-approved" ? "outcome-approved" : e.outcome === "vetoed" ? "outcome-vetoed" : "outcome-passed") + '">'
+        + (e.outcome === "auto-approved" ? "Auto" : e.outcome === "vetoed" ? "Vetoed" : "Manual") + '</td>'
         + '<td>' + (e.matchedRuleDescription ? escHtml(e.matchedRuleDescription) : "-") + '</td>'
         + '</tr>';
     }).join("");
@@ -555,6 +576,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     document.getElementById("statusTotal").textContent = String(s.stats.total);
     document.getElementById("statusApproved").textContent = String(s.stats.autoApproved);
     document.getElementById("statusPassedThrough").textContent = String(s.stats.passedThrough);
+    document.getElementById("statusVetoed").textContent = String(s.stats.vetoed);
     masterToggle.checked = s.enabled;
     masterLabel.textContent = s.enabled ? "Enabled" : "Disabled";
     soundToggle.checked = s.soundEnabled;

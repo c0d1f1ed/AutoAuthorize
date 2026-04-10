@@ -52,6 +52,6 @@ describe("ActivityLog", () => {
     log.add(undefined, { toolName: "Bash", input: "cmd2", outcome: "passed-through" });
     log.add(undefined, { toolName: "Bash", input: "cmd3", outcome: "auto-approved" });
     const stats = log.getStats();
-    expect(stats).toEqual({ total: 3, autoApproved: 2, passedThrough: 1 });
+    expect(stats).toEqual({ total: 3, autoApproved: 2, passedThrough: 1, vetoed: 0 });
   });
 });

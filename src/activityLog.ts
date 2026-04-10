@@ -5,7 +5,7 @@ export interface LogEntry {
   timestamp: number;
   toolName: string;
   input: string;
-  outcome: "auto-approved" | "passed-through";
+  outcome: "auto-approved" | "passed-through" | "vetoed";
   matchedRuleId?: string;
   matchedRuleDescription?: string;
 }
@@ -89,13 +89,15 @@ export class ActivityLog {
     };
   }
 
-  getStats(): { total: number; autoApproved: number; passedThrough: number } {
+  getStats(): { total: number; autoApproved: number; passedThrough: number; vetoed: number } {
     let autoApproved = 0;
     let passedThrough = 0;
+    let vetoed = 0;
     for (const entry of this.entries) {
       if (entry.outcome === "auto-approved") autoApproved++;
+      else if (entry.outcome === "vetoed") vetoed++;
       else passedThrough++;
     }
-    return { total: this.entries.length, autoApproved, passedThrough };
+    return { total: this.entries.length, autoApproved, passedThrough, vetoed };
   }
 }

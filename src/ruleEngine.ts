@@ -1,4 +1,5 @@
 export type ToolType = "Bash" | "Read" | "Write" | "Edit" | "WebFetch" | "WebSearch" | "*";
+export type RuleAction = "allow" | "veto" | "ask";
 
 export interface AutoApproveRule {
   id: string;
@@ -7,6 +8,7 @@ export interface AutoApproveRule {
   description: string;
   enabled: boolean;
   matchCount: number;
+  action: RuleAction;
 }
 
 export interface RuleInput {
@@ -14,6 +16,7 @@ export interface RuleInput {
   pattern: string;
   description: string;
   enabled: boolean;
+  action: RuleAction;
 }
 
 export class RuleEngine {
@@ -29,6 +32,7 @@ export class RuleEngine {
       description: input.description,
       enabled: input.enabled,
       matchCount: 0,
+      action: input.action,
     };
     this.rules.push(rule);
     this.compiledPatterns.set(rule.id, regex);
@@ -63,9 +67,10 @@ export class RuleEngine {
     return this.rules.map((r) => ({ ...r }));
   }
 
-  evaluate(toolName: string, matchTarget: string): AutoApproveRule | null {
+  evaluate(toolName: string, matchTarget: string, action: RuleAction): AutoApproveRule | null {
     for (const rule of this.rules) {
       if (!rule.enabled) continue;
+      if (rule.action !== action) continue;
       if (rule.toolType !== "*" && rule.toolType !== toolName) continue;
       const regex = this.compiledPatterns.get(rule.id);
       if (regex && regex.test(matchTarget)) {
@@ -103,7 +108,7 @@ export class RuleEngine {
     this.compiledPatterns.clear();
     for (const rule of imported) {
       const regex = new RegExp(rule.pattern);
-      this.rules.push({ ...rule });
+      this.rules.push({ ...rule, action: rule.action ?? "allow" });
       this.compiledPatterns.set(rule.id, regex);
     }
   }

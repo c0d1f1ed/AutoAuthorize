@@ -45,9 +45,49 @@ export class MessageInterceptor {
     const matchTarget = RuleEngine.getMatchTarget(tool_name, input);
 
     if (this.enabled) {
-      const matchedRule = this.ruleEngine.evaluate(tool_name, matchTarget);
+      // Tier 1: Veto — silently deny
+      const vetoRule = this.ruleEngine.evaluate(tool_name, matchTarget, "veto");
+      if (vetoRule) {
+        sendResponse({
+          type: "control_response",
+          response: {
+            subtype: "success",
+            request_id: msg.request_id,
+            response: {
+              behavior: "deny",
+              message: `Vetoed by Auto-Authorize rule: ${vetoRule.description}`,
+            },
+          },
+        });
 
-      if (matchedRule) {
+        this.activityLog.add(pid, {
+          toolName: tool_name,
+          input: matchTarget,
+          outcome: "vetoed",
+          matchedRuleId: vetoRule.id,
+          matchedRuleDescription: vetoRule.description,
+        });
+
+        return true;
+      }
+
+      // Tier 2: Ask — pass through to user prompt
+      const askRule = this.ruleEngine.evaluate(tool_name, matchTarget, "ask");
+      if (askRule) {
+        this.activityLog.add(pid, {
+          toolName: tool_name,
+          input: matchTarget,
+          outcome: "passed-through",
+          matchedRuleId: askRule.id,
+          matchedRuleDescription: askRule.description,
+        });
+
+        return false;
+      }
+
+      // Tier 3: Allow — auto-approve
+      const allowRule = this.ruleEngine.evaluate(tool_name, matchTarget, "allow");
+      if (allowRule) {
         sendResponse({
           type: "control_response",
           response: {
@@ -64,14 +104,15 @@ export class MessageInterceptor {
           toolName: tool_name,
           input: matchTarget,
           outcome: "auto-approved",
-          matchedRuleId: matchedRule.id,
-          matchedRuleDescription: matchedRule.description,
+          matchedRuleId: allowRule.id,
+          matchedRuleDescription: allowRule.description,
         });
 
         return true;
       }
     }
 
+    // No rule matched
     this.activityLog.add(pid, {
       toolName: tool_name,
       input: matchTarget,
