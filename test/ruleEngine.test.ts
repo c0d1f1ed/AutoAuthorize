@@ -131,6 +131,12 @@ describe("RuleEngine", () => {
     it("should extract file_path from Edit input", () => {
       expect(RuleEngine.getMatchTarget("Edit", { file_path: "/a/b.ts" })).toBe("/a/b.ts");
     });
+    it("should extract url from WebFetch input", () => {
+      expect(RuleEngine.getMatchTarget("WebFetch", { url: "https://example.com" })).toBe("https://example.com");
+    });
+    it("should extract query from WebSearch input", () => {
+      expect(RuleEngine.getMatchTarget("WebSearch", { query: "node.js streams" })).toBe("node.js streams");
+    });
     it("should stringify unknown tool input", () => {
       const target = RuleEngine.getMatchTarget("MCP", { server: "foo", tool: "bar" });
       expect(target).toBe('MCP: {"server":"foo","tool":"bar"}');

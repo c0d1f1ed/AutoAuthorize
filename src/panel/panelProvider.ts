@@ -293,6 +293,8 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
           <option value="Read">Read</option>
           <option value="Write">Write</option>
           <option value="Edit">Edit</option>
+          <option value="WebFetch">WebFetch</option>
+          <option value="WebSearch">WebSearch</option>
           <option value="*">Any</option>
         </select>
       </div>

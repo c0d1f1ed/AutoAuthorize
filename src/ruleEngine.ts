@@ -1,4 +1,4 @@
-export type ToolType = "Bash" | "Read" | "Write" | "Edit" | "*";
+export type ToolType = "Bash" | "Read" | "Write" | "Edit" | "WebFetch" | "WebSearch" | "*";
 
 export interface AutoApproveRule {
   id: string;
@@ -84,6 +84,10 @@ export class RuleEngine {
       case "Write":
       case "Edit":
         return (input.file_path as string) ?? "";
+      case "WebFetch":
+        return (input.url as string) ?? "";
+      case "WebSearch":
+        return (input.query as string) ?? "";
       default:
         return `${toolName}: ${JSON.stringify(input)}`;
     }
