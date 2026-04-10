@@ -125,6 +125,14 @@ export class PanelProvider implements vscode.WebviewViewProvider {
         break;
       case "importRules":
         try {
+          const rules = JSON.parse(msg.json) as Array<{ pattern?: string }>;
+          for (const rule of rules) {
+            const result = validatePattern(rule.pattern);
+            if (result) {
+              vscode.env.openExternal(vscode.Uri.parse(result.url));
+              if (result.action === "deny") return;
+            }
+          }
           this.ruleEngine.importRules(msg.json);
           this.saveRules();
           this.sendState();
