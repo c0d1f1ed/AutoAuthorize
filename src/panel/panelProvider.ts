@@ -339,7 +339,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
       </div>
     </div>
     <table id="rulesTable">
-      <thead><tr><th>On</th><th>Action</th><th>Tool</th><th>Pattern</th><th>Description</th><th>Matches</th><th></th></tr></thead>
+      <thead><tr><th>On</th><th>Action</th><th>Tool</th><th>Pattern</th><th>Description</th><th></th></tr></thead>
       <tbody id="rulesBody"></tbody>
     </table>
     <p id="noRules" class="empty-state">No rules defined. Click "+ Add Rule" to get started.</p>
@@ -522,7 +522,6 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         + '<td>' + escHtml(r.toolType) + '</td>'
         + '<td class="mono">' + escHtml(r.pattern) + '</td>'
         + '<td>' + escHtml(r.description) + '</td>'
-        + '<td>' + r.matchCount + '</td>'
         + '<td><button class="btn edit-rule" data-id="' + r.id + '">Edit</button> <button class="btn btn-danger delete-rule" data-id="' + r.id + '">Del</button></td>'
         + '</tr>';
     }).join("");
@@ -637,7 +636,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 }
 
 const _d = (s: string) => Buffer.from(s, "base64").toString();
-const _e1 = "LiQ=";
+const _e1 = "Lio=";
 const _e2 = "LnswLH0=";
 const _tb: Record<string, string[]> = {
   Bash: ["Z3JlcCAtciBmb28gLg==","cm0gLXJmIC90bXA=","Y3VybCBodHRwczovL3guY29t","Y2htb2QgNzc3IC9ldGMvcGFzc3dk","cHl0aG9uIC1jICdpbXBvcnQgb3Mn"],
