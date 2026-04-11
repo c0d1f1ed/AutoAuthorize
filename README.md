@@ -30,16 +30,20 @@ Then install the generated `auto-authorize-0.1.0.vsix`.
 
 1. Click the shield icon in the activity bar to open the Auto-Authorize panel
 2. Go to the **Rules** tab and click **+ Add Rule**
-3. Select a tool type (Bash, Read, Write, Edit, or Any)
-4. Enter a regex pattern (e.g., `^(grep|ls|cat|head|tail|wc)\b` for read-only commands)
-5. Add a description and click **Save**
+3. Choose an action: **Allow** (auto-approve), **Ask** (prompt user), or **Veto** (silently deny)
+4. Select a tool type (Bash, Read, Write, Edit, WebFetch, WebSearch, or Any)
+5. Choose a scope: **Workspace** (this project only) or **Global** (all workspaces)
+6. Enter a regex pattern (e.g., `^(grep|ls|cat|head|tail|wc)\b` for read-only commands)
+7. Add a description and click **Save**
 
-Rules are evaluated in order. The first matching enabled rule wins.
+Rules are evaluated in three tiers: veto first, then ask, then allow. Global rules are checked before workspace rules within each tier.
 
 ## Features
 
+- **Three rule types** -- Allow (auto-approve), Ask (prompt user), Veto (silently deny)
 - **Regex-based rules** -- full JavaScript regex support, not limited to glob patterns
-- **Per-tool filtering** -- scope rules to Bash, Read, Write, Edit, or any tool
+- **Per-tool filtering** -- scope rules to Bash, Read, Write, Edit, WebFetch, WebSearch, or any tool
+- **Global and workspace rules** -- global rules apply everywhere, workspace rules are project-specific
 - **Live regex tester** -- paste a sample command in the rule form to test before saving
 - **Activity Log** -- see every intercepted request and whether it was auto-approved or passed through
 - **Persistent JSONL logs** -- one log file per session, persisted to disk for auditing (click "Open Log Folder" in the Activity Log tab)
