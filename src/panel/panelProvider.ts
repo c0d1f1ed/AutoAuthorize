@@ -11,13 +11,24 @@ export class PanelProvider implements vscode.WebviewViewProvider {
 
   constructor(
     private extensionUri: vscode.Uri,
-    private ruleEngine: RuleEngine,
+    private globalRules: RuleEngine,
+    private workspaceRules: RuleEngine,
     private activityLog: ActivityLog,
     private interceptor: MessageInterceptor,
     private spawnWrapper: SpawnWrapper | null,
-    private saveRules: () => void,
+    private saveGlobalRules: () => void,
+    private saveWorkspaceRules: () => void,
     private soundConfig: { isSoundEnabled: () => boolean; setSoundEnabled: (v: boolean) => void }
   ) {}
+
+  private engineForScope(scope: string): RuleEngine {
+    return scope === "global" ? this.globalRules : this.workspaceRules;
+  }
+
+  private saveForScope(scope: string): void {
+    if (scope === "global") this.saveGlobalRules();
+    else this.saveWorkspaceRules();
+  }
 
   appendDebug(line: string): void {
     this.debugLines.push(line);
@@ -49,9 +60,11 @@ export class PanelProvider implements vscode.WebviewViewProvider {
   }
 
   private sendState(): void {
+    const globalRules = this.globalRules.getRules().map((r) => ({ ...r, scope: "global" as const }));
+    const workspaceRules = this.workspaceRules.getRules().map((r) => ({ ...r, scope: "workspace" as const }));
     this.view?.webview.postMessage({
       type: "state",
-      rules: this.ruleEngine.getRules(),
+      rules: [...globalRules, ...workspaceRules],
       stats: this.activityLog.getStats(),
       log: this.activityLog.getEntries().slice(-50),
       enabled: this.interceptor.isEnabled(),
@@ -65,12 +78,13 @@ export class PanelProvider implements vscode.WebviewViewProvider {
   private handleMessage(msg: any): void {
     switch (msg.type) {
       case "addRule": {
+        const scope = msg.rule?.scope ?? "workspace";
         const result = (!msg.rule?.action || msg.rule?.action === "allow") ? validatePattern(msg.rule?.pattern, msg.rule?.toolType) : null;
         if (result) vscode.env.openExternal(vscode.Uri.parse(result.url));
         if (result?.action === "deny") break;
         try {
-          this.ruleEngine.addRule(msg.rule);
-          this.saveRules();
+          this.engineForScope(scope).addRule(msg.rule);
+          this.saveForScope(scope);
           this.sendState();
         } catch (e: any) {
           this.view?.webview.postMessage({ type: "error", message: e.message });
@@ -78,12 +92,13 @@ export class PanelProvider implements vscode.WebviewViewProvider {
         break;
       }
       case "updateRule": {
+        const scope = msg.scope ?? "workspace";
         const result = (!msg.updates?.action || msg.updates?.action === "allow") ? validatePattern(msg.updates?.pattern, msg.updates?.toolType) : null;
         if (result) vscode.env.openExternal(vscode.Uri.parse(result.url));
         if (result?.action === "deny") break;
         try {
-          this.ruleEngine.updateRule(msg.id, msg.updates);
-          this.saveRules();
+          this.engineForScope(scope).updateRule(msg.id, msg.updates);
+          this.saveForScope(scope);
           this.sendState();
         } catch (e: any) {
           this.view?.webview.postMessage({ type: "error", message: e.message });
@@ -91,13 +106,13 @@ export class PanelProvider implements vscode.WebviewViewProvider {
         break;
       }
       case "deleteRule":
-        this.ruleEngine.deleteRule(msg.id);
-        this.saveRules();
+        this.engineForScope(msg.scope ?? "workspace").deleteRule(msg.id);
+        this.saveForScope(msg.scope ?? "workspace");
         this.sendState();
         break;
       case "reorderRules":
-        this.ruleEngine.reorderRules(msg.ids);
-        this.saveRules();
+        this.engineForScope(msg.scope ?? "workspace").reorderRules(msg.ids);
+        this.saveForScope(msg.scope ?? "workspace");
         this.sendState();
         break;
       case "setEnabled":
@@ -117,13 +132,16 @@ export class PanelProvider implements vscode.WebviewViewProvider {
         this.activityLog.clear();
         this.sendState();
         break;
-      case "exportRules":
+      case "exportRules": {
+        const scope = msg.scope ?? "workspace";
         this.view?.webview.postMessage({
           type: "exportedRules",
-          json: this.ruleEngine.exportRules(),
+          json: this.engineForScope(scope).exportRules(),
         });
         break;
-      case "importRules":
+      }
+      case "importRules": {
+        const scope = msg.scope ?? "workspace";
         try {
           const rules = JSON.parse(msg.json) as Array<{ pattern?: string; toolType?: string; action?: string }>;
           for (const rule of rules) {
@@ -133,13 +151,14 @@ export class PanelProvider implements vscode.WebviewViewProvider {
               if (result.action === "deny") return;
             }
           }
-          this.ruleEngine.importRules(msg.json);
-          this.saveRules();
+          this.engineForScope(scope).importRules(msg.json);
+          this.saveForScope(scope);
           this.sendState();
         } catch (e: any) {
           this.view?.webview.postMessage({ type: "error", message: e.message });
         }
         break;
+      }
       case "setSound":
         this.soundConfig.setSoundEnabled(msg.enabled);
         this.sendState();
@@ -267,6 +286,9 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .action-allow { background: var(--vscode-testing-iconPassed); color: var(--vscode-editor-background); }
 .action-ask { background: var(--vscode-editorWarning-foreground, #cca700); color: var(--vscode-editor-background); }
 .action-veto { background: var(--vscode-errorForeground); color: var(--vscode-editor-background); }
+.scope-badge { font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: 600; opacity: 0.8; }
+.scope-global { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+.scope-workspace { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
   </style>
 </head>
 <body>
@@ -320,6 +342,13 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         </select>
       </div>
       <div class="form-group">
+        <label>Scope</label>
+        <select id="ruleScope">
+          <option value="workspace">Workspace</option>
+          <option value="global">Global</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Regex Pattern</label>
         <input type="text" id="rulePattern" placeholder="^grep\\b.*">
         <span id="patternError" class="error hidden"></span>
@@ -339,7 +368,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
       </div>
     </div>
     <table id="rulesTable">
-      <thead><tr><th>On</th><th>Action</th><th>Tool</th><th>Pattern</th><th>Description</th><th></th></tr></thead>
+      <thead><tr><th>On</th><th>Action</th><th>Scope</th><th>Tool</th><th>Pattern</th><th>Description</th><th></th></tr></thead>
       <tbody id="rulesBody"></tbody>
     </table>
     <p id="noRules" class="empty-state">No rules defined. Click "+ Add Rule" to get started.</p>
@@ -394,6 +423,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
   const cancelRuleBtn = document.getElementById("cancelRuleBtn");
   const ruleToolType = document.getElementById("ruleToolType");
   const ruleAction = document.getElementById("ruleAction");
+  const ruleScope = document.getElementById("ruleScope");
   const rulePattern = document.getElementById("rulePattern");
   const ruleDescription = document.getElementById("ruleDescription");
   const patternError = document.getElementById("patternError");
@@ -432,6 +462,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     editingRuleId = null;
     ruleToolType.value = "Bash";
     ruleAction.value = "allow";
+    ruleScope.value = ruleScope.dataset.lastUsed || "workspace";
     rulePattern.value = "";
     ruleDescription.value = "";
     testInput.value = "";
@@ -455,14 +486,15 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
       return;
     }
     if (editingRuleId) {
-      vscode.postMessage({ type: "updateRule", id: editingRuleId, updates: {
+      vscode.postMessage({ type: "updateRule", id: editingRuleId, scope: ruleScope.value, updates: {
         toolType: ruleToolType.value, action: ruleAction.value, pattern: pattern, description: ruleDescription.value.trim(),
       }});
     } else {
       vscode.postMessage({ type: "addRule", rule: {
-        toolType: ruleToolType.value, action: ruleAction.value, pattern: pattern, description: ruleDescription.value.trim(), enabled: true,
+        toolType: ruleToolType.value, action: ruleAction.value, scope: ruleScope.value, pattern: pattern, description: ruleDescription.value.trim(), enabled: true,
       }});
     }
+    ruleScope.dataset.lastUsed = ruleScope.value;
     addRuleForm.classList.add("hidden");
     editingRuleId = null;
   });
@@ -516,18 +548,21 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     rulesBody.innerHTML = rules.map(function(r) {
       var actionClass = r.action === "veto" ? "action-veto" : r.action === "ask" ? "action-ask" : "action-allow";
       var actionLabel = r.action === "veto" ? "Veto" : r.action === "ask" ? "Ask" : "Allow";
-      return '<tr data-id="' + r.id + '">'
-        + '<td><label class="switch small-switch"><input type="checkbox" class="rule-toggle" data-id="' + r.id + '"' + (r.enabled ? ' checked' : '') + '><span class="slider"></span></label></td>'
+      var scopeLabel = r.scope === "global" ? "G" : "W";
+      var scopeClass = r.scope === "global" ? "scope-global" : "scope-workspace";
+      return '<tr data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '">'
+        + '<td><label class="switch small-switch"><input type="checkbox" class="rule-toggle" data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '"' + (r.enabled ? ' checked' : '') + '><span class="slider"></span></label></td>'
         + '<td><span class="action-badge ' + actionClass + '">' + actionLabel + '</span></td>'
+        + '<td><span class="scope-badge ' + scopeClass + '">' + scopeLabel + '</span></td>'
         + '<td>' + escHtml(r.toolType) + '</td>'
         + '<td class="mono">' + escHtml(r.pattern) + '</td>'
         + '<td>' + escHtml(r.description) + '</td>'
-        + '<td><button class="btn edit-rule" data-id="' + r.id + '">Edit</button> <button class="btn btn-danger delete-rule" data-id="' + r.id + '">Del</button></td>'
+        + '<td><button class="btn edit-rule" data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '">Edit</button> <button class="btn btn-danger delete-rule" data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '">Del</button></td>'
         + '</tr>';
     }).join("");
     rulesBody.querySelectorAll(".rule-toggle").forEach(function(el) {
       el.addEventListener("change", function() {
-        vscode.postMessage({ type: "updateRule", id: el.dataset.id, updates: { enabled: el.checked } });
+        vscode.postMessage({ type: "updateRule", id: el.dataset.id, scope: el.dataset.scope, updates: { enabled: el.checked } });
       });
     });
     rulesBody.querySelectorAll(".edit-rule").forEach(function(el) {
@@ -537,6 +572,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         editingRuleId = rule.id;
         ruleToolType.value = rule.toolType;
         ruleAction.value = rule.action || "allow";
+        ruleScope.value = rule.scope || "workspace";
         rulePattern.value = rule.pattern;
         ruleDescription.value = rule.description;
         testInput.value = ""; testResult.textContent = "";
@@ -546,7 +582,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     });
     rulesBody.querySelectorAll(".delete-rule").forEach(function(el) {
       el.addEventListener("click", function() {
-        vscode.postMessage({ type: "deleteRule", id: el.dataset.id });
+        vscode.postMessage({ type: "deleteRule", id: el.dataset.id, scope: el.dataset.scope });
       });
     });
   }

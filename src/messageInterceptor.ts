@@ -1,4 +1,4 @@
-import { RuleEngine } from "./ruleEngine";
+import { RuleEngine, RuleAction } from "./ruleEngine";
 import { ActivityLog } from "./activityLog";
 
 interface CanUseToolRequest {
@@ -26,9 +26,15 @@ export class MessageInterceptor {
   private enabled = true;
 
   constructor(
-    private ruleEngine: RuleEngine,
+    private globalRules: RuleEngine,
+    private workspaceRules: RuleEngine,
     private activityLog: ActivityLog
   ) {}
+
+  private evaluateTier(toolName: string, matchTarget: string, action: RuleAction) {
+    return this.globalRules.evaluate(toolName, matchTarget, action)
+      ?? this.workspaceRules.evaluate(toolName, matchTarget, action);
+  }
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
@@ -46,7 +52,7 @@ export class MessageInterceptor {
 
     if (this.enabled) {
       // Tier 1: Veto — silently deny
-      const vetoRule = this.ruleEngine.evaluate(tool_name, matchTarget, "veto");
+      const vetoRule = this.evaluateTier(tool_name, matchTarget, "veto");
       if (vetoRule) {
         sendResponse({
           type: "control_response",
@@ -72,7 +78,7 @@ export class MessageInterceptor {
       }
 
       // Tier 2: Ask — pass through to user prompt
-      const askRule = this.ruleEngine.evaluate(tool_name, matchTarget, "ask");
+      const askRule = this.evaluateTier(tool_name, matchTarget, "ask");
       if (askRule) {
         this.activityLog.add(pid, {
           toolName: tool_name,
@@ -86,7 +92,7 @@ export class MessageInterceptor {
       }
 
       // Tier 3: Allow — auto-approve
-      const allowRule = this.ruleEngine.evaluate(tool_name, matchTarget, "allow");
+      const allowRule = this.evaluateTier(tool_name, matchTarget, "allow");
       if (allowRule) {
         sendResponse({
           type: "control_response",

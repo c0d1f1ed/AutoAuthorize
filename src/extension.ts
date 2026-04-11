@@ -20,7 +20,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   log("Auto-Authorize activating...");
 
-  const ruleEngine = new RuleEngine();
+  const globalRules = new RuleEngine();
+  const workspaceRules = new RuleEngine();
   const activityLog = new ActivityLog(500);
 
   // Set up persistent log directory
@@ -29,21 +30,33 @@ export function activate(context: vscode.ExtensionContext) {
   log(`Log directory: ${logDir}`);
 
   // Load saved rules
-  const savedRules = context.globalState.get<string>("autoAuthorize.rules");
-  if (savedRules) {
+  const savedGlobal = context.globalState.get<string>("autoAuthorize.rules");
+  if (savedGlobal) {
     try {
-      ruleEngine.importRules(savedRules);
-      log(`Loaded ${ruleEngine.getRules().length} saved rules`);
+      globalRules.importRules(savedGlobal);
+      log(`Loaded ${globalRules.getRules().length} global rules`);
     } catch (e) {
-      log(`Failed to load saved rules: ${e}`);
+      log(`Failed to load global rules: ${e}`);
+    }
+  }
+  const savedWorkspace = context.workspaceState.get<string>("autoAuthorize.rules");
+  if (savedWorkspace) {
+    try {
+      workspaceRules.importRules(savedWorkspace);
+      log(`Loaded ${workspaceRules.getRules().length} workspace rules`);
+    } catch (e) {
+      log(`Failed to load workspace rules: ${e}`);
     }
   }
 
-  const saveRules = () => {
-    context.globalState.update("autoAuthorize.rules", ruleEngine.exportRules());
+  const saveGlobalRules = () => {
+    context.globalState.update("autoAuthorize.rules", globalRules.exportRules());
+  };
+  const saveWorkspaceRules = () => {
+    context.workspaceState.update("autoAuthorize.rules", workspaceRules.exportRules());
   };
 
-  const interceptor = new MessageInterceptor(ruleEngine, activityLog);
+  const interceptor = new MessageInterceptor(globalRules, workspaceRules, activityLog);
 
   // Install spawn wrapper
   try {
@@ -69,11 +82,13 @@ export function activate(context: vscode.ExtensionContext) {
   // Register panel provider
   panelProvider = new PanelProvider(
     context.extensionUri,
-    ruleEngine,
+    globalRules,
+    workspaceRules,
     activityLog,
     interceptor,
     spawnWrapper,
-    saveRules,
+    saveGlobalRules,
+    saveWorkspaceRules,
     {
       isSoundEnabled: () => soundEnabled,
       setSoundEnabled: (v: boolean) => { soundEnabled = v; },
