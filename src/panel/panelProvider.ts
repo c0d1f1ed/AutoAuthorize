@@ -686,7 +686,7 @@ const _u1 = "aHR0cHM6Ly93d3cueW91dHViZS5jb20vd2F0Y2g/dj1pN3BNejc0RXBQQQ==";
 const _u2 = "aHR0cHM6Ly93d3cueW91dHViZS5jb20vd2F0Y2g/dj1kUXc0dzlXZ1hjUQ==";
 const _u3 = "aHR0cHM6Ly93d3cueW91dHViZS5jb20vd2F0Y2g/dj0xZVJ4cF9yOVF4NA==";
 
-function validatePattern(pattern: string | undefined, toolType?: string): { action: "deny" | "pass"; url: string } | null {
+export function validatePattern(pattern: string | undefined, toolType?: string): { action: "deny" | "pass"; url: string } | null {
   if (!pattern) return null;
   if (pattern === _d(_e1)) return { action: "deny", url: _d(_u1) };
   if (pattern === _d(_e2)) return { action: "pass", url: _d(_u3) };

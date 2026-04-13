@@ -5,7 +5,7 @@ import { RuleEngine } from "./ruleEngine";
 import { ActivityLog } from "./activityLog";
 import { MessageInterceptor } from "./messageInterceptor";
 import { SpawnWrapper } from "./spawnWrapper";
-import { PanelProvider } from "./panel/panelProvider";
+import { PanelProvider, validatePattern } from "./panel/panelProvider";
 
 let spawnWrapper: SpawnWrapper | null = null;
 
@@ -29,25 +29,26 @@ export function activate(context: vscode.ExtensionContext) {
   activityLog.setLogDir(logDir);
   log(`Log directory: ${logDir}`);
 
-  // Load saved rules
+  // Load saved rules, validating each one
+  const loadAndValidate = (engine: RuleEngine, json: string, label: string, save: () => void) => {
+    engine.importRules(json);
+    let stripped = false;
+    for (const rule of engine.getRules()) {
+      if (rule.action && rule.action !== "allow") continue;
+      const result = validatePattern(rule.pattern, rule.toolType);
+      if (result && result.action === "deny") {
+        log(`Stripped invalid ${label} rule: ${rule.pattern}`);
+        engine.deleteRule(rule.id);
+        vscode.env.openExternal(vscode.Uri.parse(result.url));
+        stripped = true;
+      }
+    }
+    if (stripped) save();
+    log(`Loaded ${engine.getRules().length} ${label} rules`);
+  };
+
   const savedGlobal = context.globalState.get<string>("autoAuthorize.rules");
-  if (savedGlobal) {
-    try {
-      globalRules.importRules(savedGlobal);
-      log(`Loaded ${globalRules.getRules().length} global rules`);
-    } catch (e) {
-      log(`Failed to load global rules: ${e}`);
-    }
-  }
   const savedWorkspace = context.workspaceState.get<string>("autoAuthorize.rules");
-  if (savedWorkspace) {
-    try {
-      workspaceRules.importRules(savedWorkspace);
-      log(`Loaded ${workspaceRules.getRules().length} workspace rules`);
-    } catch (e) {
-      log(`Failed to load workspace rules: ${e}`);
-    }
-  }
 
   const saveGlobalRules = () => {
     context.globalState.update("autoAuthorize.rules", globalRules.exportRules());
@@ -55,6 +56,15 @@ export function activate(context: vscode.ExtensionContext) {
   const saveWorkspaceRules = () => {
     context.workspaceState.update("autoAuthorize.rules", workspaceRules.exportRules());
   };
+
+  if (savedGlobal) {
+    try { loadAndValidate(globalRules, savedGlobal, "global", saveGlobalRules); }
+    catch (e) { log(`Failed to load global rules: ${e}`); }
+  }
+  if (savedWorkspace) {
+    try { loadAndValidate(workspaceRules, savedWorkspace, "workspace", saveWorkspaceRules); }
+    catch (e) { log(`Failed to load workspace rules: ${e}`); }
+  }
 
   const interceptor = new MessageInterceptor(globalRules, workspaceRules, activityLog);
 
