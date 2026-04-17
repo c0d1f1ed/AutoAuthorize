@@ -286,6 +286,8 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
 .action-allow { background: var(--vscode-testing-iconPassed); color: var(--vscode-editor-background); }
 .action-ask { background: var(--vscode-editorWarning-foreground, #cca700); color: var(--vscode-editor-background); }
 .action-veto { background: var(--vscode-errorForeground); color: var(--vscode-editor-background); }
+.switch.disabled { pointer-events: none; }
+.switch.disabled .slider { background: var(--vscode-input-background) !important; }
 .scope-badge { font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: 600; opacity: 0.8; }
 .scope-global { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
 .scope-workspace { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
@@ -545,13 +547,14 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
     var rules = currentState.rules;
     noRules.classList.toggle("hidden", rules.length > 0);
     document.getElementById("rulesTable").classList.toggle("hidden", rules.length === 0);
+    var globalDisabled = !currentState.enabled;
     rulesBody.innerHTML = rules.map(function(r) {
       var actionClass = r.action === "veto" ? "action-veto" : r.action === "ask" ? "action-ask" : "action-allow";
       var actionLabel = r.action === "veto" ? "Veto" : r.action === "ask" ? "Ask" : "Allow";
       var scopeLabel = r.scope === "global" ? "G" : "W";
       var scopeClass = r.scope === "global" ? "scope-global" : "scope-workspace";
-      return '<tr data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '">'
-        + '<td><label class="switch small-switch"><input type="checkbox" class="rule-toggle" data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '"' + (r.enabled ? ' checked' : '') + '><span class="slider"></span></label></td>'
+      return '<tr data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '"' + (globalDisabled ? ' class="disabled-row"' : '') + '>'
+        + '<td><label class="switch small-switch' + (globalDisabled ? ' disabled' : '') + '"><input type="checkbox" class="rule-toggle" data-id="' + r.id + '" data-scope="' + (r.scope || "workspace") + '"' + (r.enabled ? ' checked' : '') + (globalDisabled ? ' disabled' : '') + '><span class="slider"></span></label></td>'
         + '<td><span class="action-badge ' + actionClass + '">' + actionLabel + '</span></td>'
         + '<td><span class="scope-badge ' + scopeClass + '">' + scopeLabel + '</span></td>'
         + '<td>' + escHtml(r.toolType) + '</td>'
