@@ -463,7 +463,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
   addRuleBtn.addEventListener("click", function() {
     editingRuleId = null;
     ruleToolType.value = "Bash";
-    ruleAction.value = "allow";
+    ruleAction.value = "ask";
     ruleScope.value = ruleScope.dataset.lastUsed || "workspace";
     rulePattern.value = "";
     ruleDescription.value = "";
