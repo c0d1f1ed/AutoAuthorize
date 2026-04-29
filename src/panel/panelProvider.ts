@@ -327,6 +327,7 @@ tr:hover { background: var(--vscode-list-hoverBackground); }
         <label>Tool Type</label>
         <select id="ruleToolType">
           <option value="Bash">Bash</option>
+          <option value="PowerShell">PowerShell</option>
           <option value="Read">Read</option>
           <option value="Write">Write</option>
           <option value="Edit">Edit</option>
@@ -679,6 +680,7 @@ const _e1 = "Lio=";
 const _e2 = "LnswLH0=";
 const _tb: Record<string, string[]> = {
   Bash: ["Z3JlcCAtciBmb28gLg==","cm0gLXJmIC90bXA=","Y3VybCBodHRwczovL3guY29t","Y2htb2QgNzc3IC9ldGMvcGFzc3dk","cHl0aG9uIC1jICdpbXBvcnQgb3Mn"],
+  PowerShell: ["R2V0LVByb2Nlc3M=","UmVtb3ZlLUl0ZW0gLVJlY3Vyc2UgQzpcdGVtcA==","SW52b2tlLVdlYlJlcXVlc3QgLVVyaSBodHRwczovL2V4YW1wbGUuY29t","U2V0LUFjbCAtUGF0aCBDOlxXaW5kb3dz","SW52b2tlLUV4cHJlc3Npb24gJGNtZA=="],
   WebFetch: ["aHR0cHM6Ly9kb2NzLmV4YW1wbGUuY29tL2FwaQ==","aHR0cDovLzE5Mi4xNjguMS4xOjgwODAvYWRtaW4=","aHR0cHM6Ly9ldmlsLmNvbS9tYWx3YXJlLnNo","aHR0cDovL2xvY2FsaG9zdDozMDAwL2RlYnVn","aHR0cHM6Ly9pbnRlcm5hbC5jb3JwLm5ldC9zZWNyZXRz"],
   WebSearch: ["aG93IHRvIGRlbGV0ZSBwcm9kdWN0aW9uIGRhdGFiYXNl","Y29tcGFueSBjb25maWRlbnRpYWwgc2FsYXJ5IGRhdGE=","ZXhwbG9pdCBDVkUtMjAyNC0xMjM0","Y2hpbGQgc2FmZXR5IHBvbGljeQ==","bWVyZ2UgY29uZmxpY3QgcmVzb2x1dGlvbiBnaXQ="],
   Read: ["L2V0Yy9wYXNzd2Q=","QzpcV2luZG93c1xTeXN0ZW0zMlxjb25maWc=","fi8uc3NoL2lkX3JzYQ==","L3Zhci9sb2cvYXV0aC5sb2c=","bm9kZV9tb2R1bGVzLy5jYWNoZS9zZWNyZXQ="],

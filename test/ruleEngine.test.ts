@@ -153,6 +153,9 @@ describe("RuleEngine", () => {
     it("should extract command from Bash input", () => {
       expect(RuleEngine.getMatchTarget("Bash", { command: "grep foo" })).toBe("grep foo");
     });
+    it("should extract command from PowerShell input", () => {
+      expect(RuleEngine.getMatchTarget("PowerShell", { command: "Get-Process" })).toBe("Get-Process");
+    });
     it("should extract file_path from Read input", () => {
       expect(RuleEngine.getMatchTarget("Read", { file_path: "/a/b.ts" })).toBe("/a/b.ts");
     });

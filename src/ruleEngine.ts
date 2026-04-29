@@ -1,4 +1,4 @@
-export type ToolType = "Bash" | "Read" | "Write" | "Edit" | "WebFetch" | "WebSearch" | "*";
+export type ToolType = "Bash" | "PowerShell" | "Read" | "Write" | "Edit" | "WebFetch" | "WebSearch" | "*";
 export type RuleAction = "allow" | "veto" | "ask";
 
 export interface AutoApproveRule {
@@ -84,6 +84,7 @@ export class RuleEngine {
   static getMatchTarget(toolName: string, input: Record<string, unknown>): string {
     switch (toolName) {
       case "Bash":
+      case "PowerShell":
         return (input.command as string) ?? "";
       case "Read":
       case "Write":
